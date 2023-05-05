@@ -1,4 +1,4 @@
-"""Adds config flow for Blueprint."""
+"""Adds config flow for Intuis integration."""
 from __future__ import annotations
 
 import voluptuous as vol
@@ -8,16 +8,13 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .api import (
-    IntegrationBlueprintApiClient,
-    IntegrationBlueprintApiClientAuthenticationError,
-    IntegrationBlueprintApiClientCommunicationError,
-    IntegrationBlueprintApiClientError,
+    IntuisApi,
 )
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, CLIENT_ID, CLIENT_SECRET
 
 
-class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Blueprint."""
+class IntuisFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+    """Config flow for Intuis."""
 
     VERSION = 1
 
@@ -33,15 +30,8 @@ class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     username=user_input[CONF_USERNAME],
                     password=user_input[CONF_PASSWORD],
                 )
-            except IntegrationBlueprintApiClientAuthenticationError as exception:
-                LOGGER.warning(exception)
-                _errors["base"] = "auth"
-            except IntegrationBlueprintApiClientCommunicationError as exception:
-                LOGGER.error(exception)
-                _errors["base"] = "connection"
-            except IntegrationBlueprintApiClientError as exception:
+            except Exception as exception:
                 LOGGER.exception(exception)
-                _errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
                     title=user_input[CONF_USERNAME],
@@ -72,9 +62,11 @@ class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _test_credentials(self, username: str, password: str) -> None:
         """Validate credentials."""
-        client = IntegrationBlueprintApiClient(
+        client = IntuisApi(
+            CLIENT_ID,
+            CLIENT_SECRET,
             username=username,
             password=password,
             session=async_create_clientsession(self.hass),
         )
-        await client.async_get_data()
+        await self.hass.async_add_executor_job(client.connect)
