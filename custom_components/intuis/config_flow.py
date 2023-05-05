@@ -67,6 +67,5 @@ class IntuisFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             CLIENT_SECRET,
             username=username,
             password=password,
-            session=async_create_clientsession(self.hass),
         )
         await self.hass.async_add_executor_job(client.connect)
