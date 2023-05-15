@@ -5,11 +5,11 @@
     "@jerome-gr"
   ],
   "config_flow": true,
-  "requirements": [
-    "pyatmo==7.5.0"
-  ],
   "documentation": "https://github.com/jerome-gr/intuis",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/jerome-gr/intuis/issues",
+  "requirements": [
+    "pyatmo==7.5.0"
+  ],
   "version": "0.0.1"
 }
