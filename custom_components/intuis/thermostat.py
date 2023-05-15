@@ -20,6 +20,7 @@ class IntuisRadiatorStatus(HomeStatus):
     """Thermostat class for intuis."""
 
     def process(self) -> None:
+        """Process the response."""
         super().process()
         for module in self.raw_data.get("modules", []):
             if module["type"] in {"NMH"}:

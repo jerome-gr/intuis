@@ -57,7 +57,7 @@ class IntuisTempSensor(SensorEntity, CoordinatorEntity):
         temp: str,
         firmware: str,
     ) -> None:
-        """"""
+        """Init temp Sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
         self._attr_name = name

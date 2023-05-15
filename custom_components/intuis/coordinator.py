@@ -15,6 +15,7 @@ from .api import (
     IntuisApi,
 )
 from .const import DOMAIN, LOGGER
+from requests.exceptions import ConnectionError
 
 
 # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
@@ -42,40 +43,43 @@ class IntuisDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Update data via library."""
         try:
-            await self._hass.async_add_executor_job(self.client.connect)
-
             homes = await self.async_get_homes()
 
-            devices = {}
-            for key in homes.homes:
-                statuses = await self.async_get_radiator_status(homes.homes[key]["id"])
-
-                for room in homes.homes[key]["rooms"]:
-                    for module in room["modules"]:
-                        module_id = homes.get_module(key, module).get("id")
-
-                        devices[module_id] = IntuisDevice(
-                            module_id,
-                            room["name"],
-                            homes.get_module(key, module).get("name"),
-                            statuses.measured_temperature(room["id"]),
-                            statuses.get_thermostat(module_id).get(
-                                "firmware_revision_thirdparty"
-                            ),
-                        )
-            return devices
+            return await self.async_get_devices(homes)
         except InvalidClientError as exception:
             LOGGER.error("Not authorized %s", exception)
-        except Exception as exception:
-            LOGGER.error(type(exception))
-            LOGGER.error(exception)
+        except ConnectionError as ex:
+            LOGGER.warning("Connection error, trying to refresh token")
+            LOGGER.warning(ex)
+            await self._hass.async_add_executor_job(self.client.refresh_tokens)
+
+    async def async_get_devices(self, homes: list):
+        """Get devices for homes."""
+        devices = {}
+        for key in homes.homes:
+            statuses = await self.async_get_radiator_status(homes.homes[key]["id"])
+
+            for room in homes.homes[key]["rooms"]:
+                for module in room["modules"]:
+                    module_id = homes.get_module(key, module).get("id")
+
+                    devices[module_id] = IntuisDevice(
+                        module_id,
+                        room["name"],
+                        homes.get_module(key, module).get("name"),
+                        statuses.measured_temperature(room["id"]),
+                        statuses.get_thermostat(module_id).get(
+                            "firmware_revision_thirdparty"
+                        ),
+                    )
+        return devices
 
     async def async_get_homes(self):
-        """TODO"""
+        """Get homes."""
         return await self._hass.async_add_executor_job(self.client.get_homes)
 
     async def async_get_radiator_status(self, home_id):
-        """TODO"""
+        """Get radiator statuses."""
         return await self._hass.async_add_executor_job(
             self.client.get_radiator_status, home_id
         )
@@ -83,7 +87,7 @@ class IntuisDataUpdateCoordinator(DataUpdateCoordinator):
 
 @dataclass
 class IntuisDevice:
-    """TODO"""
+    """Intuis device class."""
 
     id: int
     room_name: str
@@ -94,7 +98,7 @@ class IntuisDevice:
 
 @dataclass
 class IntuisHome:
-    """Netatmo home class."""
+    """Intuis home class."""
 
     id: int
     name: str
